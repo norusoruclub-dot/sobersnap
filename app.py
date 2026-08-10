@@ -1,21 +1,26 @@
 import time
 from PIL import Image
 import streamlit as st
-import random
 
 st.set_page_config(page_title="SoberSnap", page_icon="🍷", layout="centered")
 
 # 初期化
-if "step" not in st.session_state: st.session_state.step = "start"
-if "logs" not in st.session_state: st.session_state.logs = []
-if "warning_level" not in st.session_state: st.session_state.warning_level = 0
-if "quiz_active" not in st.session_state: st.session_state.quiz_active = False
+if "step" not in st.session_state:
+    st.session_state.step = "start"
+if "party_title" not in st.session_state:
+    st.session_state.party_title = "飲み会"
+if "logs" not in st.session_state:
+    st.session_state.logs = []
+if "warning_level" not in st.session_state:
+    st.session_state.warning_level = 0
+if "quiz_active" not in st.session_state:
+    st.session_state.quiz_active = False
 
 # --- 1. スタート ---
 if st.session_state.step == "start":
     st.title("🍷 SoberSnap")
-    title = st.text_input("飲み会タイトル", "有嘉代と片町デート")
-    if st.button("スタート 🚀"):
+    title = st.text_input("飲み会タイトル", "有嘉代と片町デートin帆夏")
+    if st.button("スタート 🚀", use_container_width=True):
         st.session_state.party_title = title
         st.session_state.step = "main"
         st.rerun()
@@ -23,56 +28,85 @@ if st.session_state.step == "start":
 # --- 2. メイン ---
 elif st.session_state.step == "main":
     st.title(f"🍻 {st.session_state.party_title}")
-    
+
     # クイズ表示
     if st.session_state.quiz_active:
-        st.subheader("💡 酔い覚ましクイズ")
-        if st.button("次のドリンクを飲む前にクイズ！"):
-            st.info("「ウコンの力の成分は？」→ 正解：クルクミン")
+        st.info("💡 **【酔い覚ましクイズ】次の一杯に行く前に一息！**")
+        if st.button("クイズに答える / スキップ", use_container_width=True):
             st.session_state.quiz_active = False
             st.rerun()
 
     tab1, tab2 = st.tabs(["📸 記録", "🎬 思い出"])
-    
-    with tab1:
-        upload_type = st.radio("何を記録？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True)
-        uploaded_file = st.file_uploader("写真を選択", type=["jpg", "jpeg", "png"])
 
-        if uploaded_file:
-            # エラー防止：バイナリデータとして開き、画像を表示
-            image = Image.open(uploaded_file)
-            st.image(image, use_column_width=True)
-            
-            name = st.text_input("名前", "生ビール" if upload_type=="乾杯・お酒" else "つき出し")
-            
-            if st.button("記録する"):
-                st.session_state.logs.append({"type": upload_type, "name": name, "image": image})
-                if upload_type == "乾杯・お酒":
-                    st.session_state.warning_level += 1
-                    st.session_state.quiz_active = True # クイズフラグON
-                st.success("記録しました！")
-                time.sleep(1)
-                st.rerun()
+    with tab1:
+        upload_type = st.radio(
+            "何を記録？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True
+        )
+        uploaded_file = st.file_uploader(
+            "写真を選択", type=["jpg", "jpeg", "png"]
+        )
+
+        if uploaded_file is not None:
+            try:
+                # 画像を安全に読み込み、大きすぎる場合はリサイズしてエラーを防ぐ
+                image = Image.open(uploaded_file)
+                image.thumbnail((1024, 1024))
+
+                # 画像表示（互換性の高い引数を使用）
+                st.image(image, use_container_width=True)
+
+                default_name = (
+                    "生ビール" if upload_type == "乾杯・お酒" else "つき出し"
+                )
+                name = st.text_input("名前を入力", default_name)
+
+                if st.button("記録する 📝", use_container_width=True):
+                    st.session_state.logs.append(
+                        {"type": upload_type, "name": name, "image": image}
+                    )
+                    if upload_type == "乾杯・お酒":
+                        st.session_state.warning_level += 1
+                        st.session_state.quiz_active = (
+                            True  # クイズフラグON
+                        )
+                    st.success("記録しました！")
+                    time.sleep(1)
+                    st.rerun()
+            except Exception:
+                st.error(
+                    "画像の処理に失敗しました。別の画像をお試しください。"
+                )
 
     with tab2:
         if not st.session_state.logs:
-            st.write("まだ記録はありません")
+            st.info("まだ記録はありません")
         else:
-            idx = st.slider("写真選択", 0, len(st.session_state.logs)-1, 0)
+            idx = st.slider(
+                "写真選択",
+                0,
+                len(st.session_state.logs) - 1,
+                0,
+                format_func=lambda x: f"写真 {x+1}: {st.session_state.logs[x]['name']}",
+            )
             log = st.session_state.logs[idx]
-            st.image(log["image"], use_column_width=True)
-            st.markdown(f"### 💬 {log['name']}")
+            st.image(log["image"], use_container_width=True)
+            st.markdown(
+                f"<div style='background:#1e293b; color:white; padding:15px; border-radius:10px; text-align:center; font-size:18px;'>💬 {log['name']}</div>",
+                unsafe_allow_html=True,
+            )
 
-    if st.button("終了して振り返る"):
+    st.markdown("---")
+    if st.button("🏁 終了して振り返る", use_container_width=True):
         st.session_state.step = "summary"
         st.rerun()
 
 # --- 3. 振り返り ---
 elif st.session_state.step == "summary":
-    st.title("本日のまとめ")
+    st.title("🎉 本日のまとめ")
     for log in st.session_state.logs:
-        st.image(log["image"], use_column_width=True)
-        st.write(f"### {log['name']}")
-    if st.button("最初から"):
+        st.image(log["image"], use_container_width=True)
+        st.markdown(f"### 🎞️ {log['name']}")
+
+    if st.button("最初からやり直す", use_container_width=True):
         st.session_state.clear()
         st.rerun()
