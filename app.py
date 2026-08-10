@@ -15,6 +15,8 @@ if "warning_level" not in st.session_state:
     st.session_state.warning_level = 0
 if "quiz_active" not in st.session_state:
     st.session_state.quiz_active = False
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0  # アップロード欄をリセットするためのキー
 
 # --- 1. スタート ---
 if st.session_state.step == "start":
@@ -42,8 +44,12 @@ elif st.session_state.step == "main":
         upload_type = st.radio(
             "何を記録？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True
         )
+
+        # 動的なキーを使うことで、記録するたびにアップローダーを完全に初期化する
         uploaded_file = st.file_uploader(
-            "写真を選択", type=["jpg", "jpeg", "png"]
+            "写真を選択",
+            type=["jpg", "jpeg", "png"],
+            key=f"uploader_{st.session_state.uploader_key}",
         )
 
         if uploaded_file is not None:
@@ -64,6 +70,9 @@ elif st.session_state.step == "main":
                     if upload_type == "乾杯・お酒":
                         st.session_state.warning_level += 1
                         st.session_state.quiz_active = True
+
+                    # アップローダーのキーを更新してフォームをリセット・次へ備える
+                    st.session_state.uploader_key += 1
                     st.success("記録しました！")
                     time.sleep(1)
                     st.rerun()
@@ -74,7 +83,6 @@ elif st.session_state.step == "main":
         if not st.session_state.logs:
             st.info("まだ記録はありません")
         else:
-            # 安全にスライダーの範囲を指定
             max_val = len(st.session_state.logs) - 1
             if max_val == 0:
                 idx = 0
