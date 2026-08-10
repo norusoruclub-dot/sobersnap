@@ -1,4 +1,3 @@
-import random
 import time
 from PIL import Image
 import streamlit as st
@@ -8,209 +7,194 @@ st.set_page_config(
 )
 
 if "step" not in st.session_state:
-  st.session_state.step = "start"
+    st.session_state.step = "start"
 if "party_title" not in st.session_state:
-  st.session_state.party_title = ""
+    st.session_state.party_title = ""
 if "logs" not in st.session_state:
-  st.session_state.logs = []
+    st.session_state.logs = (
+        []
+    )  # 構造: {"type": "ドリンク" or "おつまみ", "name": 名前, "image": 画像データ}
 if "warning_level" not in st.session_state:
-  st.session_state.warning_level = 0
+    st.session_state.warning_level = 0
 if "uploaded_image" not in st.session_state:
-  st.session_state.uploaded_image = None
+    st.session_state.uploaded_image = None
+if "temp_name" not in st.session_state:
+    st.session_state.temp_name = ""
+
 
 # --- 1. スタート画面 ---
 if st.session_state.step == "start":
-  st.title("🍷 SoberSnap (ベータ版)")
-  st.subheader("お酒に飲まれない、大人のスマートディナーVlog")
+    st.title("🍷 SoberSnap (ベータ版)")
+    st.subheader("お酒に飲まれない、大人のスマートディナーVlog")
 
-  st.markdown("---")
-  st.session_state.party_title = st.text_input(
-      "今日の飲み会タイトル", "例：有嘉代と久々片町デート"
-  )
+    st.markdown("---")
+    st.session_state.party_title = st.text_input(
+        "今日の飲み会タイトル", "例：有森代と久々片町デート"
+    )
 
-  if st.button(
-      "飲み会をスタートする 🚀", type="primary", use_container_width=True
-  ):
-    if st.session_state.party_title:
-      st.session_state.step = "main"
-      st.session_state.logs = []
-      st.session_state.warning_level = 0
-      st.session_state.uploaded_image = None
-      st.rerun()
-    else:
-      st.warning("タイトルを入力してください。")
+    if st.button(
+        "飲み会をスタートする 🚀", type="primary", use_container_width=True
+    ):
+        if st.session_state.party_title:
+            st.session_state.step = "main"
+            st.session_state.logs = []
+            st.session_state.warning_level = 0
+            st.session_state.uploaded_image = None
+            st.rerun()
+        else:
+            st.warning("タイトルを入力してください。")
 
-# --- 2. メイン画面（記録・修正・ミニテスト） ---
+
+# --- 2. メイン画面（記録・修正・スライドショー） ---
 elif st.session_state.step == "main":
-  st.title(f"🍻 {st.session_state.party_title}")
+    st.title(f"🍻 {st.session_state.party_title}")
 
-  if st.session_state.warning_level == 1:
-    st.warning(
-        "⚠️ **【注意】少し酔いが回ってきたかも？ お水を一杯挟みましょう！**"
-    )
-  elif st.session_state.warning_level >= 2:
-    st.error(
-        "🚨 **【警告】判断力が低下しています！ ペースを落としてお水を飲んでください！**"
-    )
-
-  st.markdown("---")
-
-  st.subheader("📸 記録する")
-  upload_type = st.radio(
-      "何を記録しますか？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True
-  )
-
-  uploaded_file = st.file_uploader(
-      "写真を撮影（またはアップロード）", type=["jpg", "jpeg", "png"]
-  )
-
-  # スマホの写真が重くてリセットされるのを防ぐため、読み込んで縮小・保持する処理
-  if uploaded_file is not None:
-    try:
-      img = Image.open(uploaded_file)
-      img.thumbnail((1024, 1024))  # スマホ負荷軽減のため大きさを自動調整
-      st.session_state.uploaded_image = img
-    except Exception:
-      st.error(
-          "画像の読み込みに失敗しました。別の画像を選択し直してください。"
-      )
-
-  if st.session_state.uploaded_image is not None:
-    st.image(
-        st.session_state.uploaded_image,
-        caption="撮影された画像",
-        use_container_width=True,
-    )
-
-    if upload_type == "乾杯・お酒":
-      default_name = random.choice([
-          "生ビール (中ジョッキ)",
-          "日本酒 (純米・一合)",
-          "ハイボール",
-          "赤ワイン",
-      ])
-      st.write("▼ AIが自動予測しました（名前は自由に変更できます）")
-      edited_drink_name = st.text_input(
-          "ドリンク名を確認・修正", value=default_name
-      )
-
-      if st.button("この内容で記録する", use_container_width=True):
-        st.success(f"**{edited_drink_name}** を記録しました！")
-        st.session_state.logs.append(
-            {"type": "drink", "name": edited_drink_name, "alc": 5.0}
-        )
-        st.session_state.uploaded_image = None  # 次のためにクリア
-        st.session_state.step = "test"
-        st.rerun()
-
-    else:
-      default_dish = random.choice([
-          "先付け・旬の小鉢盛り合わせ",
-          "お造り盛り合わせ",
-          "牛すじ煮込み",
-          "旬の焼き魚",
-      ])
-      st.write("▼ AIが自動予測しました（名前は自由に変更できます）")
-      edited_dish_name = st.text_input(
-          "おつまみ名を確認・修正", value=default_dish
-      )
-
-      if st.button("このおつまみを記録する", use_container_width=True):
-        st.success(f"おつまみ「**{edited_dish_name}**」を記録しました！")
-        st.session_state.logs.append(
-            {"type": "food", "name": edited_dish_name}
-        )
-        st.session_state.uploaded_image = None  # 次のためにクリア
-        st.rerun()
-
-  st.markdown("---")
-
-  st.subheader("📝 本日のログ一覧")
-  if st.session_state.logs:
-    for i, log in enumerate(st.session_state.logs):
-      if log["type"] == "drink":
-        st.write(f"🍺 ドリンク {i+1}: {log['name']}")
-      else:
-        st.write(f"🍴 フード {i+1}: {log['name']}")
-  else:
-    st.info("まだ記録がありません。お酒や料理を撮影してみましょう！")
-
-  st.markdown("---")
-  if st.button("飲み会を終了してVlogを作成する 🎬", use_container_width=True):
-    st.session_state.step = "result"
-    st.rerun()
-
-# --- 3. ミニテスト画面 ---
-elif st.session_state.step == "test":
-  st.title("🧠 脳内・思考力チェックテスト")
-  st.write(
-      "新しいお酒を楽しく安全に飲むために、簡単な計算テストに答えてください！"
-  )
-
-  if "quiz_ans" not in st.session_state:
-    num1 = random.randint(10, 40)
-    num2 = random.randint(10, 40)
-    st.session_state.quiz_ans = num1 + num2
-    st.session_state.quiz_text = f"{num1} ＋ {num2} はいくつ？"
-
-  st.markdown(f"### Q. {st.session_state.quiz_text}")
-  user_answer = st.text_input("答えを入力してください（半角数字）", key="ans_input")
-
-  if st.button("回答する", type="primary"):
-    try:
-      if int(user_answer) == st.session_state.quiz_ans:
-        st.success("正解！✨ まだまだクリアな状態です！")
-        st.session_state.warning_level = max(
-            0, st.session_state.warning_level - 1
-        )
-      else:
+    if st.session_state.warning_level == 1:
+        st.warning("⚠️ **【注意】少し回ってきたかも？ お水を一杯挟みましょう！**")
+    elif st.session_state.warning_level >= 2:
         st.error(
-            f"おっと、不正解！（正解は"
-            f" {st.session_state.quiz_ans}）ちょっと酔いが回ってきたかも…？"
+            "🚨 **【警告】判断力が低下しています！ ペースを落としてお水を飲んでください！**"
         )
-        st.session_state.warning_level += 1
-    except ValueError:
-      st.warning("数字で入力してください。不正解扱いにします。")
-      st.session_state.warning_level += 1
 
-    if "quiz_ans" in st.session_state:
-      del st.session_state.quiz_ans
-    if "quiz_text" in st.session_state:
-      del st.session_state.quiz_text
+    st.markdown("---")
 
-    time.sleep(1.5)
-    st.session_state.step = "main"
-    st.rerun()
+    # タブ切り替え（「記録する」と「本日の思い出スライドショー」）
+    tab_record, tab_slideshow = st.tabs(["📸 記録する", "🎬 思い出スライドショー"])
 
-# --- 4. エンド画面 ---
-elif st.session_state.step == "result":
-  st.title("🎬 飲み会ストーリーVログ完成！")
-  st.success(
-      "本日のディナーの記録から、思い出のVログストーリーが生成されました。"
-  )
-
-  st.markdown("---")
-  st.markdown(f"### 🎞️ タイトル: {st.session_state.party_title}")
-
-  if st.session_state.logs:
-    for idx, log in enumerate(st.session_state.logs):
-      if log["type"] == "drink":
-        st.markdown(
-            f"**[シーン {idx+1}] 乾杯・お酒** 🍺  \n-> `{log['name']}`"
-            " を美味しくいただきました。"
+    with tab_record:
+        st.subheader("📸 記録する")
+        upload_type = st.radio(
+            "何を記録しますか？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True
         )
-      else:
-        st.markdown(
-            f"**[シーン {idx+1}] グルメ** 🍴  \n-> 美味しいおつまみ"
-            f" `{log['name']}` と共に最高の時間を堪能。"
-        )
-  else:
-    st.write("本日は記録がありませんでした。")
 
-  st.markdown("---")
-  if st.button("最初に戻る（新しい飲み会を始める）", use_container_width=True):
-    st.session_state.step = "start"
-    st.session_state.logs = []
-    st.session_state.warning_level = 0
-    st.session_state.uploaded_image = None
-    st.rerun()
+        uploaded_file = st.file_uploader(
+            "写真を撮影 (またはアップロード) ", type=["jpg", "jpeg", "png"]
+        )
+
+        if uploaded_file is not None:
+            image = Image.open(uploaded_file)
+            st.session_state.uploaded_image = image
+            st.image(image, caption="撮影された画像", use_column_width=True)
+
+            if upload_type == "乾杯・お酒":
+                drink_name = st.text_input(
+                    "ドリンク名を入力", "生ビール", key="input_drink_name"
+                )
+                if st.button("このドリンクを記録する 🍻", use_container_width=True):
+                    st.session_state.logs.append(
+                        {
+                            "type": "ドリンク",
+                            "name": drink_name,
+                            "image": st.session_state.uploaded_image,
+                        }
+                    )
+                    st.session_state.warning_level += 1
+                    st.success(
+                        f"「{drink_name}」を記録しました！お水も一緒にどうぞ✨"
+                    )
+                    time.sleep(1)
+                    st.rerun()
+            else:
+                food_name = st.text_input(
+                    "おつまみ・料理名を入力", "つき出し", key="input_food_name"
+                )
+                if st.button("このおつまみを記録する 🍳", use_container_width=True):
+                    st.session_state.logs.append(
+                        {
+                            "type": "おつまみ",
+                            "name": food_name,
+                            "image": st.session_state.uploaded_image,
+                        }
+                    )
+                    st.success(f"「{food_name}」を記録しました！")
+                    time.sleep(1)
+                    st.rerun()
+
+        st.markdown("---")
+        st.subheader("📝 本日のログ一覧（テキスト確認）")
+        if not st.session_state.logs:
+            info_text = (
+                "まだ記録がありません。上のカメラから撮影して記録を追加しましょう！"
+            )
+            st.info(info_text)
+        else:
+            for i, log in enumerate(st.session_state.logs):
+                if log["type"] == "ドリンク":
+                    st.markdown(f"🍺 **ドリンク {i+1}**: {log['name']}")
+                else:
+                    st.markdown(f"🍽️ **フード {i+1}**: {log['name']}")
+
+        st.markdown("---")
+        if st.button("🏁 飲み会を終了して振り返る", use_container_width=True):
+            st.session_state.step = "summary"
+            st.rerun()
+
+    with tab_slideshow:
+        st.subheader("🎬 思い出スライドショー ＆ 字幕")
+        if not st.session_state.logs:
+            st.info(
+                "まだ写真の記録がありません。「記録する」タブから写真を追加してください。"
+            )
+        else:
+            st.markdown(
+                "撮影した写真が、当時の字幕（記録名）と一緒にスライド形式で流れます！"
+            )
+
+            # スライドショー風に番号を選んで表示、またはすべて順番に表示
+            slide_index = st.slider(
+                "スライドを選択",
+                0,
+                len(st.session_state.logs) - 1,
+                0,
+                format_func=lambda x: f"写真 {x+1}: {st.session_state.logs[x]['name']}",
+            )
+
+            current_log = st.session_state.logs[slide_index]
+
+            # 画像と字幕の表示
+            st.image(
+                current_log["image"],
+                caption=f"【{current_log['type']}】 {current_log['name']}",
+                use_column_width=True,
+            )
+
+            # 映画の字幕風のスタイリッシュなBOX
+            st.markdown(
+                f"""
+                <div style="background-color: #1e293b; color: #ffffff; padding: 20px; border-radius: 10px; text-align: center; font-size: 22px; font-weight: bold; margin-top: 15px;">
+                    💬 字幕: 「 {current_log['name']} 」
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
+# --- 3. 終了・振り返り画面 ---
+elif st.session_state.step == "summary":
+    st.title("🎉 お疲れ様でした！本日のVlogまとめ")
+    st.subheader(f"飲み会タイトル: {st.session_state.party_title}")
+
+    st.markdown("---")
+    st.subheader("🎬 思い出のハイライト（スライドショー）")
+
+    if not st.session_state.logs:
+        st.info("記録はありませんでした。")
+    else:
+        for i, log in enumerate(st.session_state.logs):
+            st.markdown(f"### シーン {i+1}: {log['type']}")
+            st.image(log["image"], use_column_width=True)
+            st.markdown(
+                f"""
+                <div style="background-color: #0f172a; color: #38bdf8; padding: 15px; border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px;">
+                    🎞️ 字幕: {log['name']}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("---")
+    if st.button("🔄 最初からやり直す", type="primary", use_container_width=True):
+        st.session_state.step = "start"
+        st.session_state.logs = []
+        st.session_state.warning_level = 0
+        st.rerun()
