@@ -16,7 +16,7 @@ if "warning_level" not in st.session_state:
 if "quiz_active" not in st.session_state:
     st.session_state.quiz_active = False
 if "uploader_key" not in st.session_state:
-    st.session_state.uploader_key = 0  # アップロード欄をリセットするためのキー
+    st.session_state.uploader_key = 0
 
 # --- 1. スタート ---
 if st.session_state.step == "start":
@@ -31,12 +31,33 @@ if st.session_state.step == "start":
 elif st.session_state.step == "main":
     st.title(f"🍻 {st.session_state.party_title}")
 
-    # クイズ表示
+    # クイズ表示（選択肢式に変更）
     if st.session_state.quiz_active:
-        st.info("💡 **【酔い覚ましクイズ】次の一杯に行く前に一息！**")
-        if st.button("クイズに答える / スキップ", use_container_width=True):
+        st.markdown(
+            "---"
+        )
+        st.info("💡 **【酔い覚ましクイズ】お酒を飲む前に一問！**")
+        st.write("Q. お酒を飲むときに、一緒に摂ると良いとされる代表的な成分は？")
+
+        # 選択肢ボタンを別々に用意
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("A. カフェイン", use_container_width=True):
+                st.warning("不正解！カフェインは利尿作用があるのでお水の方がおすすめです。")
+                time.sleep(1.5)
+                st.session_state.quiz_active = False
+                st.rerun()
+        with col2:
+            if st.button("B. クルクミン (ウコン)", use_container_width=True):
+                st.success("正解です！✨ お見事です！")
+                time.sleep(1.5)
+                st.session_state.quiz_active = False
+                st.rerun()
+
+        if st.button("クイズをスキップする", use_container_width=True):
             st.session_state.quiz_active = False
             st.rerun()
+        st.markdown("---")
 
     tab1, tab2 = st.tabs(["📸 記録", "🎬 思い出"])
 
@@ -45,7 +66,6 @@ elif st.session_state.step == "main":
             "何を記録？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True
         )
 
-        # 動的なキーを使うことで、記録するたびにアップローダーを完全に初期化する
         uploaded_file = st.file_uploader(
             "写真を選択",
             type=["jpg", "jpeg", "png"],
@@ -69,9 +89,10 @@ elif st.session_state.step == "main":
                     )
                     if upload_type == "乾杯・お酒":
                         st.session_state.warning_level += 1
-                        st.session_state.quiz_active = True
+                        st.session_state.quiz_active = (
+                            True  # クイズを表示する
+                        )
 
-                    # アップローダーのキーを更新してフォームをリセット・次へ備える
                     st.session_state.uploader_key += 1
                     st.success("記録しました！")
                     time.sleep(1)
