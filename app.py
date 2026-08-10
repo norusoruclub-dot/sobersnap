@@ -1,3 +1,5 @@
+import os
+os.environ["GEMINI_API_KEY"] = AQ.Ab8RN6KyeTk3t_zrxNThkNZqo3LZIejSpj_x68nEFv0CU2Eawg
 import time
 from PIL import Image
 import streamlit as st
