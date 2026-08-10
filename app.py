@@ -48,11 +48,8 @@ elif st.session_state.step == "main":
 
         if uploaded_file is not None:
             try:
-                # 画像を安全に読み込み、大きすぎる場合はリサイズしてエラーを防ぐ
                 image = Image.open(uploaded_file)
                 image.thumbnail((1024, 1024))
-
-                # 画像表示（互換性の高い引数を使用）
                 st.image(image, use_container_width=True)
 
                 default_name = (
@@ -66,28 +63,25 @@ elif st.session_state.step == "main":
                     )
                     if upload_type == "乾杯・お酒":
                         st.session_state.warning_level += 1
-                        st.session_state.quiz_active = (
-                            True  # クイズフラグON
-                        )
+                        st.session_state.quiz_active = True
                     st.success("記録しました！")
                     time.sleep(1)
                     st.rerun()
             except Exception:
-                st.error(
-                    "画像の処理に失敗しました。別の画像をお試しください。"
-                )
+                st.error("画像の処理に失敗しました。")
 
     with tab2:
         if not st.session_state.logs:
             st.info("まだ記録はありません")
         else:
-            idx = st.slider(
-                "写真選択",
-                0,
-                len(st.session_state.logs) - 1,
-                0,
-                format_func=lambda x: f"写真 {x+1}: {st.session_state.logs[x]['name']}",
-            )
+            # 安全にスライダーの範囲を指定
+            max_val = len(st.session_state.logs) - 1
+            if max_val == 0:
+                idx = 0
+                st.write(f"写真 1: {st.session_state.logs[0]['name']}")
+            else:
+                idx = st.slider("写真選択", 0, max_val, 0)
+
             log = st.session_state.logs[idx]
             st.image(log["image"], use_container_width=True)
             st.markdown(
@@ -103,9 +97,12 @@ elif st.session_state.step == "main":
 # --- 3. 振り返り ---
 elif st.session_state.step == "summary":
     st.title("🎉 本日のまとめ")
-    for log in st.session_state.logs:
-        st.image(log["image"], use_container_width=True)
-        st.markdown(f"### 🎞️ {log['name']}")
+    if not st.session_state.logs:
+        st.info("記録はありません。")
+    else:
+        for log in st.session_state.logs:
+            st.image(log["image"], use_container_width=True)
+            st.markdown(f"### 🎞️ {log['name']}")
 
     if st.button("最初からやり直す", use_container_width=True):
         st.session_state.clear()
