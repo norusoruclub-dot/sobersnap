@@ -31,15 +31,12 @@ if st.session_state.step == "start":
 elif st.session_state.step == "main":
     st.title(f"🍻 {st.session_state.party_title}")
 
-    # クイズ表示（選択肢式に変更）
+    # クイズ表示
     if st.session_state.quiz_active:
-        st.markdown(
-            "---"
-        )
+        st.markdown("---")
         st.info("💡 **【酔い覚ましクイズ】お酒を飲む前に一問！**")
         st.write("Q. お酒を飲むときに、一緒に摂ると良いとされる代表的な成分は？")
 
-        # 選択肢ボタンを別々に用意
         col1, col2 = st.columns(2)
         with col1:
             if st.button("A. カフェイン", use_container_width=True):
@@ -78,9 +75,12 @@ elif st.session_state.step == "main":
                 image.thumbnail((1024, 1024))
                 st.image(image, use_container_width=True)
 
-                default_name = (
-                    "生ビール" if upload_type == "乾杯・お酒" else "つき出し"
-                )
+                # ラジオボタンの選択に応じて初期値を完全に分ける
+                if upload_type == "乾杯・お酒":
+                    default_name = "ジントニック"
+                else:
+                    default_name = "つき出し"
+
                 name = st.text_input("名前を入力", default_name)
 
                 if st.button("記録する 📝", use_container_width=True):
@@ -89,9 +89,7 @@ elif st.session_state.step == "main":
                     )
                     if upload_type == "乾杯・お酒":
                         st.session_state.warning_level += 1
-                        st.session_state.quiz_active = (
-                            True  # クイズを表示する
-                        )
+                        st.session_state.quiz_active = True
 
                     st.session_state.uploader_key += 1
                     st.success("記録しました！")
@@ -112,7 +110,7 @@ elif st.session_state.step == "main":
                 idx = st.slider("写真選択", 0, max_val, 0)
 
             log = st.session_state.logs[idx]
-            st.image(log["image"], use_container_width=True)
+            st.image(log["image"], use_column_width=True)
             st.markdown(
                 f"<div style='background:#1e293b; color:white; padding:15px; border-radius:10px; text-align:center; font-size:18px;'>💬 {log['name']}</div>",
                 unsafe_allow_html=True,
@@ -130,7 +128,7 @@ elif st.session_state.step == "summary":
         st.info("記録はありません。")
     else:
         for log in st.session_state.logs:
-            st.image(log["image"], use_container_width=True)
+            st.image(log["image"], use_column_width=True)
             st.markdown(f"### 🎞️ {log['name']}")
 
     if st.button("最初からやり直す", use_container_width=True):
