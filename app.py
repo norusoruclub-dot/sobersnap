@@ -11,15 +11,11 @@ if "step" not in st.session_state:
 if "party_title" not in st.session_state:
     st.session_state.party_title = ""
 if "logs" not in st.session_state:
-    st.session_state.logs = (
-        []
-    )  # 構造: {"type": "ドリンク" or "おつまみ", "name": 名前, "image": 画像データ}
+    st.session_state.logs = []
 if "warning_level" not in st.session_state:
     st.session_state.warning_level = 0
 if "uploaded_image" not in st.session_state:
     st.session_state.uploaded_image = None
-if "temp_name" not in st.session_state:
-    st.session_state.temp_name = ""
 
 
 # --- 1. スタート画面 ---
@@ -29,7 +25,7 @@ if st.session_state.step == "start":
 
     st.markdown("---")
     st.session_state.party_title = st.text_input(
-        "今日の飲み会タイトル", "例：有森代と久々片町デート"
+        "今日の飲み会タイトル", "例：有嘉代と久々片町デート"
     )
 
     if st.button(
@@ -58,7 +54,6 @@ elif st.session_state.step == "main":
 
     st.markdown("---")
 
-    # タブ切り替え（「記録する」と「本日の思い出スライドショー」）
     tab_record, tab_slideshow = st.tabs(["📸 記録する", "🎬 思い出スライドショー"])
 
     with tab_record:
@@ -68,13 +63,26 @@ elif st.session_state.step == "main":
         )
 
         uploaded_file = st.file_uploader(
-            "写真を撮影 (またはアップロード) ", type=["jpg", "jpeg", "png"]
+            "写真を撮影 (またはアップロード)", type=["jpg", "jpeg", "png"]
         )
 
         if uploaded_file is not None:
-            image = Image.open(uploaded_file)
-            st.session_state.uploaded_image = image
-            st.image(image, caption="撮影された画像", use_column_width=True)
+            try:
+                # 画像を開いて大きすぎる場合は自動縮小（エラー防止）
+                image = Image.open(uploaded_file)
+                image.thumbnail((1024, 1024))
+                st.session_state.uploaded_image = image
+            except Exception:
+                st.error(
+                    "画像の読み込みに失敗しました。別の画像をお試しください。"
+                )
+
+        if st.session_state.uploaded_image is not None:
+            st.image(
+                st.session_state.uploaded_image,
+                caption="撮影された画像",
+                use_container_width=True,
+            )
 
             if upload_type == "乾杯・お酒":
                 drink_name = st.text_input(
@@ -89,6 +97,7 @@ elif st.session_state.step == "main":
                         }
                     )
                     st.session_state.warning_level += 1
+                    st.session_state.uploaded_image = None  # クリア
                     st.success(
                         f"「{drink_name}」を記録しました！お水も一緒にどうぞ✨"
                     )
@@ -106,6 +115,7 @@ elif st.session_state.step == "main":
                             "image": st.session_state.uploaded_image,
                         }
                     )
+                    st.session_state.uploaded_image = None  # クリア
                     st.success(f"「{food_name}」を記録しました！")
                     time.sleep(1)
                     st.rerun()
@@ -113,10 +123,9 @@ elif st.session_state.step == "main":
         st.markdown("---")
         st.subheader("📝 本日のログ一覧（テキスト確認）")
         if not st.session_state.logs:
-            info_text = (
+            st.info(
                 "まだ記録がありません。上のカメラから撮影して記録を追加しましょう！"
             )
-            st.info(info_text)
         else:
             for i, log in enumerate(st.session_state.logs):
                 if log["type"] == "ドリンク":
@@ -140,7 +149,6 @@ elif st.session_state.step == "main":
                 "撮影した写真が、当時の字幕（記録名）と一緒にスライド形式で流れます！"
             )
 
-            # スライドショー風に番号を選んで表示、またはすべて順番に表示
             slide_index = st.slider(
                 "スライドを選択",
                 0,
@@ -151,14 +159,12 @@ elif st.session_state.step == "main":
 
             current_log = st.session_state.logs[slide_index]
 
-            # 画像と字幕の表示
             st.image(
                 current_log["image"],
                 caption=f"【{current_log['type']}】 {current_log['name']}",
-                use_column_width=True,
+                use_container_width=True,
             )
 
-            # 映画の字幕風のスタイリッシュなBOX
             st.markdown(
                 f"""
                 <div style="background-color: #1e293b; color: #ffffff; padding: 20px; border-radius: 10px; text-align: center; font-size: 22px; font-weight: bold; margin-top: 15px;">
@@ -182,7 +188,7 @@ elif st.session_state.step == "summary":
     else:
         for i, log in enumerate(st.session_state.logs):
             st.markdown(f"### シーン {i+1}: {log['type']}")
-            st.image(log["image"], use_column_width=True)
+            st.image(log["image"], use_container_width=True)
             st.markdown(
                 f"""
                 <div style="background-color: #0f172a; color: #38bdf8; padding: 15px; border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px;">
