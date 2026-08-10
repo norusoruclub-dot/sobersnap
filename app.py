@@ -1,8 +1,12 @@
 import os
-os.environ["GEMINI_API_KEY"] = "AQ.Ab8RN6KyeTk3t_zrxNThkNZqo3LZIejSpj_x68nEFv0CU2Eawg"
 import time
 from PIL import Image
 import streamlit as st
+import google.generativeai as genai
+
+# APIキーの設定
+if "GEMINI_API_KEY" in os.environ:
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 st.set_page_config(page_title="SoberSnap", page_icon="🍷", layout="centered")
 
@@ -32,107 +36,38 @@ if st.session_state.step == "start":
 # --- 2. メイン ---
 elif st.session_state.step == "main":
     st.title(f"🍻 {st.session_state.party_title}")
-
-    # クイズ表示
-    if st.session_state.quiz_active:
-        st.markdown("---")
-        st.info("💡 **【酔い覚ましクイズ】お酒を飲む前に一問！**")
-        st.write("Q. お酒を飲むときに、一緒に摂ると良いとされる代表的な成分は？")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("A. カフェイン", use_container_width=True):
-                st.warning("不正解！カフェインは利尿作用があるのでお水の方がおすすめです。")
-                time.sleep(1.5)
-                st.session_state.quiz_active = False
-                st.rerun()
-        with col2:
-            if st.button("B. クルクミン (ウコン)", use_container_width=True):
-                st.success("正解です！✨ お見事です！")
-                time.sleep(1.5)
-                st.session_state.quiz_active = False
-                st.rerun()
-
-        if st.button("クイズをスキップする", use_container_width=True):
-            st.session_state.quiz_active = False
-            st.rerun()
-        st.markdown("---")
-
-    tab1, tab2 = st.tabs(["📸 記録", "🎬 思い出"])
-
-    with tab1:
-        upload_type = st.radio(
-            "何を記録？", ["乾杯・お酒", "おつまみ・料理"], horizontal=True
-        )
-
-        uploaded_file = st.file_uploader(
-            "写真を選択",
-            type=["jpg", "jpeg", "png"],
-            key=f"uploader_{st.session_state.uploader_key}",
-        )
-
-        if uploaded_file is not None:
+    
+    # 画像アップロード
+    uploaded_file = st.file_uploader(
+        "お酒や飲み物の写真をアップロード", 
+        type=["jpg", "jpeg", "png"],
+        key=f"uploader_{st.session_state.uploader_key}"
+    )
+    
+    drink_name = ""
+    if uploaded_file is not jamais:
+        image = Image.open(uploaded_file)
+        st.image(image, use_container_width=True)
+        
+        # AIによる画像解析
+        with st.spinner("AIが飲み物を判定中..."):
             try:
-                image = Image.open(uploaded_file)
-                image.thumbnail((1024, 1024))
-                st.image(image, use_container_width=True)
-
-                # ラジオボタンの選択に応じて初期値を完全に分ける
-                if upload_type == "乾杯・お酒":
-                    default_name = "ジントニック"
-                else:
-                    default_name = "つき出し"
-
-                name = st.text_input("名前を入力", default_name)
-
-                if st.button("記録する 📝", use_container_width=True):
-                    st.session_state.logs.append(
-                        {"type": upload_type, "name": name, "image": image}
-                    )
-                    if upload_type == "乾杯・お酒":
-                        st.session_state.warning_level += 1
-                        st.session_state.quiz_active = True
-
-                    st.session_state.uploader_key += 1
-                    st.success("記録しました！")
-                    time.sleep(1)
-                    st.rerun()
-            except Exception:
-                st.error("画像の処理に失敗しました。")
-
-    with tab2:
-        if not st.session_state.logs:
-            st.info("まだ記録はありません")
-        else:
-            max_val = len(st.session_state.logs) - 1
-            if max_val == 0:
-                idx = 0
-                st.write(f"写真 1: {st.session_state.logs[0]['name']}")
-            else:
-                idx = st.slider("写真選択", 0, max_val, 0)
-
-            log = st.session_state.logs[idx]
-            st.image(log["image"], use_column_width=True)
-            st.markdown(
-                f"<div style='background:#1e293b; color:white; padding:15px; border-radius:10px; text-align:center; font-size:18px;'>💬 {log['name']}</div>",
-                unsafe_allow_html=True,
-            )
-
-    st.markdown("---")
-    if st.button("🏁 終了して振り返る", use_container_width=True):
-        st.session_state.step = "summary"
-        st.rerun()
-
-# --- 3. 振り返り ---
-elif st.session_state.step == "summary":
-    st.title("🎉 本日のまとめ")
-    if not st.session_state.logs:
-        st.info("記録はありません。")
-    else:
-        for log in st.session_state.logs:
-            st.image(log["image"], use_column_width=True)
-            st.markdown(f"### 🎞️ {log['name']}")
-
-    if st.button("最初からやり直す", use_container_width=True):
-        st.session_state.clear()
-        st.rerun()
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                response = model.generate_content([
+                    image, 
+                    "この画像に写っている飲み物の名前（例：生ビール、ハイボール、ジントニック、ウーロン茶など）を、商品名やカクテル名だけで極めて簡潔に答えてください。余計な説明は一切不要です。"
+                ])
+                drink_name = response.text.strip()
+            except Exception as e:
+                drink_name = ""
+    
+    st.write("名前を入力")
+    name_input = st.text_input("ドリンク名", value=drink_name, key="current_drink_name")
+    
+    if st.button("記録する 📝", use_container_width=True):
+        if name_input:
+            st.session_state.logs.append(name_input)
+            st.session_state.uploader_key += 1
+            st.success(f"「{name_input}」を記録しました！")
+            time.sleep(1)
+            st.rerun()
